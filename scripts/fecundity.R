@@ -26,16 +26,6 @@ fecundity_stats
 
 write.csv(fecundity_stats, "output/fecundity-stats_anova.csv")
 
-## Post hoc test for fecundity
-fit_contrast_fec <- emmeans::emmeans(fit_fec, specs = pairwise ~ Treatment, by=c("PaternalStock","age"), mode="kenward-roger")
-fit_contr_fec <- contrast(fit_contrast_fec, method="pairwise")
-
-pheno_contr_fec <- as.data.frame(summary(fit_contr_fec))
-pheno_contr_fec
-
-write.csv(pheno_contr_fec,"output/fecundity_posthoc.csv")
-
-
 ## Fecundity figure
 fecund_figure <- ggplot(fecund_by_vial, aes(x=Treatment, y=fecundity, col=PaternalStock)) +
   xlab("Caloric Density") + ylab("# progeny per mom") + ggtitle("Fecundity") +
@@ -56,3 +46,20 @@ fecund_figure <- ggplot(fecund_by_vial, aes(x=Treatment, y=fecundity, col=Patern
 fecund_figure
 ggsave("images/fecundity-figure-byDay.png")
 
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="42"])
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="217"])
+
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="42" & fecund_by_vial$Treatment=="0.5x"])
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="217" & fecund_by_vial$Treatment=="0.5x"])
+
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="42" & fecund_by_vial$Treatment=="1x"])
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="217" & fecund_by_vial$Treatment=="1x"])
+
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="42" & fecund_by_vial$Treatment=="2x"])
+mean(fecund_by_vial$fecundity[fecund_by_vial$PaternalStock=="217" & fecund_by_vial$Treatment=="2x"])
+
+
+#get number of vials with zero progeny
+length(fecund_by_vial$vial_num[fecund_by_vial$fecundity==0 & fecund_by_vial$PaternalStock=="217"])
+
+length(fecund_by_vial$vial_num[fecund_by_vial$fecundity==0 & fecund_by_vial$PaternalStock=="42"])

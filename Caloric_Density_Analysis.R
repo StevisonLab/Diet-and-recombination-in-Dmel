@@ -13,7 +13,7 @@ library(doBy)
 library(MASS)
 library(cowplot)
 library(lmerTest)
-
+library(optimx)
 
 ##### RUN ANALYSIS
 ##
@@ -40,6 +40,9 @@ source("scripts/merge-data.R")
 #save cleaned merged datasets
 write.csv(merged,file="output/phenotyping_data_cleaned.csv",row.names = F,quote = F)
 write.csv(by_vialday,file="output/data_cleaned_by_vialday.csv",row.names = F,quote = F)
+
+# Check for happlotype skews
+source("scripts/haplotype-bias.R")
 
 # Calculate mean recombination by treatment and strain
 source("scripts/recombination-rate.R")

@@ -40,6 +40,26 @@ recomb_intervals <- data.frame(interval = c("y-cv", "cv-v", "v-f"),
                                observed = c(total_ycv_rr, total_cvv_rr, total_vf_rr) * 100,
                                expected = c(13.7, 19.3, 23.7))
 
+# Differences in recomb rate between diets for strain 42
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"])
+100*(0.4917997-0.4897164) #low calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"])
+100*(0.4897164-0.4190004) #high calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"])
+100*(0.4917997-0.4190004) #low calorie to high calorie
+
+# Differences in recomb rate between diets for strain 217
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"])
+100*(0.4656569-0.4407166) #low calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"])
+100*(0.4407166-0.4398042) #high calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"])
+100*(0.4656569-0.4398042) #low calorie to high calorie
+
+
+# Run COI script
+source("scripts/COI.R")
+
 ## Remove haplotype columns
 recomb <- recomb[,!names(recomb) %in% haplotypes]
 
@@ -70,7 +90,7 @@ dev.off()
 ## Stats and figures
 
 ## FULL interval recomb model
-library(optimx)
+
 recomb_rate$nco_inds=recomb_rate$num_M.sum-recomb_rate$co_inds.sum
 fit_full <- glmer(cbind(co_inds.sum,nco_inds) ~ (1|MaternalVial) + Treatment * PaternalStock * vial_letter, data=recomb_rate,family=binomial(link="logit"),control = glmerControl(
   optimizer ='optimx', optCtrl=list(method='nlminb')))

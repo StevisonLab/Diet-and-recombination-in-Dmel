@@ -1,7 +1,7 @@
 # Recombination rate analysis
 
 kosambi_correction <- function(input) {
-  (exp(4 * input) - 1) / (2 * exp(-4 * input) + 1) / 10
+  (100/4)*(log((1+(2*input))/(1-(2*input))))
 }
 
 recomb <- by_vialday
@@ -14,7 +14,7 @@ recomb$co_inds <- recomb$sco_inds + 2*recomb$dco_inds + 3*recomb$tco_inds
 recomb$num_M <- rowSums(recomb[names(recomb) %in% haplotypes], )
 
 recomb$recomb_rate <- recomb$co_inds / recomb$num_M
-recomb$kosambi <- kosambi_correction(recomb$recomb_rate)
+#recomb$kosambi <- kosambi_correction(recomb$recomb_rate)
 
 recomb <- na.omit(recomb)
 
@@ -39,22 +39,8 @@ total_vf_rr <-total_vf_count / total_num_M
 recomb_intervals <- data.frame(interval = c("y-cv", "cv-v", "v-f"),
                                observed = c(total_ycv_rr, total_cvv_rr, total_vf_rr) * 100,
                                expected = c(13.7, 19.3, 23.7))
+recomb_intervals$kosambi=kosambi_correction(recomb_intervals$observed/100)
 
-# Differences in recomb rate between diets for strain 42
-sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"])
-100*(0.4917997-0.4897164) #low calorie to control
-sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"])
-100*(0.4897164-0.4190004) #high calorie to control
-sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"])
-100*(0.4917997-0.4190004) #low calorie to high calorie
-
-# Differences in recomb rate between diets for strain 217
-sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"])
-100*(0.4656569-0.4407166) #low calorie to control
-sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"])
-100*(0.4407166-0.4398042) #high calorie to control
-sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"])
-100*(0.4656569-0.4398042) #low calorie to high calorie
 
 
 # Run COI script
@@ -63,27 +49,17 @@ source("scripts/COI.R")
 ## Remove haplotype columns
 recomb <- recomb[,!names(recomb) %in% haplotypes]
 
-recomb_rate=summaryBy(co_inds+ycv_count+cvv_count+vf_count+num_M~MaternalVial+vial_letter+PaternalStock+Treatment+adj_age,data=recomb,FUN=sum,na.rm=T)
-recomb_rate$recomb_rate=recomb_rate$co_inds.sum/recomb_rate$num_M.sum
-recomb_rate$ycv_rr=recomb_rate$ycv_count.sum/recomb_rate$num_M.sum
-recomb_rate$cvv_rr=recomb_rate$cvv_count.sum/recomb_rate$num_M.sum
-recomb_rate$vf_rr=recomb_rate$vf_count.sum/recomb_rate$num_M.sum
+recomb_rate=summaryBy(co_inds+ycv_count+cvv_count+vf_count+num_M~MaternalVial+vial_letter+PaternalStock+Treatment,data=recomb,FUN=sum,na.rm=T)
 recomb_rate=recomb_rate[recomb_rate$num_M.sum>=5,]
-
+recomb_rate$ycv_rr=kosambi_correction(recomb_rate$ycv_count.sum/recomb_rate$num_M.sum)
+recomb_rate$cvv_rr=kosambi_correction(recomb_rate$cvv_count.sum/recomb_rate$num_M.sum)
+recomb_rate$vf_rr=kosambi_correction(recomb_rate$vf_count.sum/recomb_rate$num_M.sum)
+recomb_rate$recomb_rate=rowSums(recomb_rate[,c("ycv_rr","cvv_rr","vf_rr")],na.rm=TRUE)
 recomb_summary <- aggregate(recomb_rate[, c("recomb_rate", "ycv_rr", "cvv_rr", "vf_rr")], by = list(recomb_rate$Treatment, recomb_rate$PaternalStock), mean)
 names(recomb_summary)[1:2] <- c("Treatment", "PaternalStock")
 
 recomb_summary$treat=ifelse(recomb_summary$Treatment=="2x",2,ifelse(recomb_summary$Treatment=="1x",1,0.5))
 
-diet_gxe_map <- ggplot(recomb_summary, aes(x=as.numeric(treat), y=recomb_rate*100,col=factor(PaternalStock)))  + 
-  xlab("Caloric Density") + ylab("Percent Recombination") + ggtitle("GxE diet") + 
-  scale_x_continuous(limits=c(0.4,2.1),breaks=c(0.5,1,2),labels=c("0.5x","1x","2x")) +  
-  theme_base()+ 
-  geom_line() + theme(legend.title=element_blank())
-
-pdf("images/diet_gxe_full.pdf")
-diet_gxe_map
-dev.off()
 
 
 
@@ -230,6 +206,35 @@ pheno_contr_vf
 
 write.csv(pheno_contr_vf, "output/recomb-stats_anova-vf_posthoc.csv")
 
+
+# Summary table for paper:
+recomb_rate=summaryBy(co_inds+ycv_count+cvv_count+vf_count+num_M~vial_letter+PaternalStock+Treatment,data=recomb,FUN=sum,na.rm=T)
+recomb_rate=recomb_rate[recomb_rate$num_M.sum>=5,]
+recomb_rate$ycv_rr=kosambi_correction(recomb_rate$ycv_count.sum/recomb_rate$num_M.sum)
+recomb_rate$cvv_rr=kosambi_correction(recomb_rate$cvv_count.sum/recomb_rate$num_M.sum)
+recomb_rate$vf_rr=kosambi_correction(recomb_rate$vf_count.sum/recomb_rate$num_M.sum)
+recomb_rate$recomb_rate=rowSums(recomb_rate[,c("ycv_rr","cvv_rr","vf_rr")],na.rm=TRUE)
+recomb_summary <- aggregate(recomb_rate[, c("recomb_rate", "ycv_rr", "cvv_rr", "vf_rr")], by = list(recomb_rate$Treatment, recomb_rate$PaternalStock), mean)
+names(recomb_summary)[1:2] <- c("Treatment", "PaternalStock")
+
+#recomb_summary <- aggregate(recomb_rate[, c("recomb_rate", "ycv_rr", "cvv_rr", "vf_rr")], by = list(recomb_rate$Treatment, recomb_rate$PaternalStock), sd)
+#names(recomb_summary)[1:2] <- c("Treatment", "PaternalStock")
+
+# Differences in recomb rate between diets for strain 42
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="0.5x"])
+55.23938-51.92768 #low calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="1x"])
+51.92768-44.206 #high calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="42" & recomb_summary$Treatment=="2x"])
+55.23938-44.206 #low calorie to high calorie
+
+# Differences in recomb rate between diets for strain 217
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="0.5x"])
+49.83412-46.28678 #low calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="1x"])
+46.28678-45.80224 #high calorie to control
+sum(recomb_summary$ycv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"]+recomb_summary$cvv_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"]+recomb_summary$vf_rr[recomb_summary$PaternalStock=="217" & recomb_summary$Treatment=="2x"])
+49.83412-45.80224 #low calorie to high calorie
 
 
 

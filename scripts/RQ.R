@@ -200,7 +200,7 @@ summary_by(cbind(O2pHr2,CO2pHr2, Weight, RQ) ~ Treatment, data=resp42, FUN=fun)
 summary_by(cbind(O2pHr2,CO2pHr2, Weight, RQ) ~ Treatment, data=resp217, FUN=fun)
 
 SumAll <- summary_by(cbind(O2pHr2,CO2pHr2, RQ) ~ Treatment + Sex + Stock, data=resp, FUN=fun)
-write.csv(SumAll, "output/SumAll.csv")
+write.csv(SumAll, "output/SumAll_RQ.csv")
 
 #RQ for 42
 RQTreatment42=ggplot(resp42, aes(x=Sex, y=RQ, fill=Treatment)) + 

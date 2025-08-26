@@ -67,9 +67,3 @@ ggplot(data=long_df, aes(x = treat, y = log2(FPKM + 1),fill=strain)) +
 ggsave("images/piRNA.png")
 
 #Conclusion: S42 has lower overall piRNA expression regardless of diet
-
-ggplot(data=long_df, aes(x = as.numeric(treat), y = log2(FPKM + 1),col=strain)) +
-  geom_point() + geom_line() + facet_wrap(~ID) +
-  labs(title = "Expression by Diet and Strain", x = "Diet", y = "FPKM") +
-  theme_minimal() + scale_color_manual(values = pale) 
-ggsave("images/piRNA_byGene.png")

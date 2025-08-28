@@ -14,6 +14,7 @@ library(MASS)
 library(cowplot)
 library(lmerTest)
 library(optimx)
+library(ggpubr)
 
 ##### RUN ANALYSIS
 ##
@@ -26,35 +27,45 @@ eval.significance <- function(input) {
 }
 
 ### Define haplotype groups
-source("scripts/haplotype-groups.R")
+source("scripts/01.haplotype-groups.R")
 
 # Read in cleaned up anonymized phenotype data
 data=read.csv(file="rawdata/phenotype-data-anon.csv",stringsAsFactors = F)
 
 # Cleanup backcross form data (F1 cross info)
-source("scripts/backcross-cleanup.R")
+source("scripts/02.backcross-cleanup.R")
 
 # Merge phenotype data with backcross/treatment data
-source("scripts/merge-data.R")
+source("scripts/03.merge-data.R")
 
 #save cleaned merged datasets
 write.csv(merged,file="output/phenotyping_data_cleaned.csv",row.names = F,quote = F)
 write.csv(by_vialday,file="output/data_cleaned_by_vialday.csv",row.names = F,quote = F)
 
 # Check for happlotype skews
-source("scripts/haplotype-bias.R")
+source("scripts/04.haplotype-bias.R")
 
-# Calculate mean recombination by treatment and strain
-source("scripts/recombination-rate.R")
+# Calculate mean recombination by treatment and strain; runs COI script within it!
+source("scripts/05.recombination-rate.R")
 
 # Calculate fecundity by vial by day and avg fecundity/mom/day
-source("scripts/fecundity.R")
+source("scripts/06.fecundity.R")
 
 # Combine all data into one summary data.frame
 summary <- merge(recomb_summary, fecund_summary, by = c("Treatment", "PaternalStock"))
 
-# Calculate haplotype bias
-source("scripts/haplotype-bias.R")
+# Ovary Analysis
+source("scripts/07.Ovaries.R")
 
-# Calculate Crossover Interference
-source("scripts/COI.R")
+# Analyze Testis Measurements
+source("scripts/08.testis_analysis.R")
+
+# Analyze Body Mass
+source("scripts/09.Weights.R")
+
+# Analyze RQ
+source("scripts/10.RQ.R")
+
+# Analyze RNA Seq
+source("scripts/11.RNA_sequencing.R")
+source("scripts/12.piRNA.R")

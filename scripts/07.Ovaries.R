@@ -130,7 +130,7 @@ summary(zip_model)
 
 #fit_Oocyte <- glmer.nb(oocyte_cor ~ (1|Replicate)+(1|Ovary_cor) + (1|Replicate:Ovary_cor)+Age * Treatment * Stock * Stage, data = Ova)
 fit_Oocyte=readRDS("output/Oocyte_Model.rds")
-saveRDS(fit_Oocyte,file="output/Oocyte_Model.rds")
+#saveRDS(fit_Oocyte,file="output/Oocyte_Model.rds")
 summary(fit_Oocyte)
 anova_fitOoocyte <- Anova(fit_Oocyte)
 anova_fitOoocyte
@@ -344,24 +344,131 @@ odds_figure_TUN=ggplot(aes(y=tun_or,x=factor(Stage,levels = Order_Sta),group=con
 odds_figure_TUN
 
 
-#Figure 4B
+
+#Figure 4B without Stages
+fit_contrast_TUN <- emmeans::emmeans(TUNELlm, ~ Treatment, by=c("Stock"), mode="kenward-roger")
+fit_contr_TUN <- contrast(fit_contrast_TUN, method="pairwise")
+pheno_contr_TUN <- as.data.frame(summary(fit_contr_TUN))
+pheno_contr_TUN
+
+odds_ratioTUN=pheno_contr_TUN
+odds_ratioTUN$tun_or=exp(odds_ratioTUN$estimate)
+odds_ratioTUN$ooc_sig=ifelse(odds_ratioTUN$p.value<0.001,"***",ifelse(odds_ratioTUN$p.value<0.01,"**",ifelse(odds_ratioTUN$p.value<0.05,"*","")))
+odds_ratioTUN
+
+
+step1 <- odds_ratioTUN %>%
+  mutate(
+    Stock = dplyr::recode(Stock,
+                          "42" = "DGRP_42",
+                          "217" = "DGRP_217"
+    ))
+
+step2 <- step1 %>%
+  filter(contrast == "Treatment0.5 - Treatment2")
+
+odds_ratioTUN_summary <- step2 %>%
+  mutate(
+    color_category = case_when(
+      Stock == "DGRP_42" & tun_or >= 1 ~ "DGRP_42_high",
+      Stock == "DGRP_42" & tun_or < 1 ~ "DGRP_42_low", 
+      Stock == "DGRP_217" & tun_or >= 1 ~ "DGRP_217_high",
+      Stock == "DGRP_217" & tun_or < 1 ~ "DGRP_217_low",
+      TRUE ~ "unknown"  # Catch any unexpected cases
+    )
+  )
+
+color_map <- c(
+  "DGRP_42_low" = "#a63603",      # Original dark color for OR >= 1
+  "DGRP_42_high" = "#fdd0a2",       # Light color for OR < 1
+  "DGRP_217_low" = "#08519c",     # Original dark color for OR >= 1
+  "DGRP_217_high" = "#c6dbef"       # Light color for OR < 1
+)
+
 odds_figure_TUN_stock <- ggplot(
   odds_ratioTUN_summary,
-  aes(x = as.factor(Stock), y = tun_or, fill = as.factor(Stock))
-) +
-  geom_col(width = 0.6) +
-  geom_errorbar(aes(ymin = tun_or - SE, ymax = tun_or + SE, color = as.factor(Stock)),
-                width = 0.2, size = 1) +
+  aes(x = as.factor(Stock), y = tun_or, fill = color_category)
+) + 
+  # Create bars that start from y = 1
+  geom_rect(aes(xmin = as.numeric(as.factor(Stock)) - 0.3,
+                xmax = as.numeric(as.factor(Stock)) + 0.3,
+                ymin = 1,
+                ymax = tun_or), position = position_dodge()) +
+#  geom_col(width = 0.6, position = position_dodge()) +
+#  geom_errorbar(aes(ymin = tun_or - SE, ymax = tun_or + SE, color = color_category),
+#                width = 0.2, size = 1, position = position_dodge(width = 0.6)) +
   scale_fill_manual(values = color_map) +
   scale_color_manual(values = color_map) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "grey") +
-  ylab("DNA damage Odds Ratio") +
-  xlab("Stock") +
+  ylab("Odds Ratio from TUNEL assay") +
+  xlab("") + ylim(c(0.96,1.04))+
   theme_base() +
   theme( legend.position = "none")
 
 odds_figure_TUN_stock
 
+# Figure 4B with Stages
+fit_contrast_TUN <- emmeans::emmeans(TUNELlm, ~ Treatment, by=c("Stock","Stage"), mode="kenward-roger")
+fit_contr_TUN <- contrast(fit_contrast_TUN, method="pairwise")
+pheno_contr_TUN <- as.data.frame(summary(fit_contr_TUN))
+pheno_contr_TUN
+
+odds_ratioTUN=pheno_contr_TUN
+odds_ratioTUN$tun_or=exp(odds_ratioTUN$estimate)
+odds_ratioTUN$ooc_sig=ifelse(odds_ratioTUN$p.value<0.001,"***",ifelse(odds_ratioTUN$p.value<0.01,"**",ifelse(odds_ratioTUN$p.value<0.05,"*","")))
+odds_ratioTUN
+
+
+step1 <- odds_ratioTUN %>%
+  mutate(
+    Stock = dplyr::recode(Stock,
+                          "42" = "DGRP_42",
+                          "217" = "DGRP_217"
+    ))
+
+step2 <- step1 %>%
+  filter(contrast == "Treatment0.5 - Treatment2")
+
+odds_ratioTUN_summary <- step2 %>%
+  mutate(
+    color_category = case_when(
+      Stock == "DGRP_42" & tun_or >= 1 ~ "DGRP_42_high",
+      Stock == "DGRP_42" & tun_or < 1 ~ "DGRP_42_low", 
+      Stock == "DGRP_217" & tun_or >= 1 ~ "DGRP_217_high",
+      Stock == "DGRP_217" & tun_or < 1 ~ "DGRP_217_low",
+      TRUE ~ "unknown"  # Catch any unexpected cases
+    )
+  )
+
+color_map <- c(
+  "DGRP_42_low" = "#a63603",      # Original dark color for OR >= 1
+  "DGRP_42_high" = "#fdd0a2",       # Light color for OR < 1
+  "DGRP_217_low" = "#08519c",     # Original dark color for OR >= 1
+  "DGRP_217_high" = "#c6dbef"       # Light color for OR < 1
+)
+
+odds_figure_TUN_stages <- ggplot(
+  odds_ratioTUN_summary,
+  aes(x = as.factor(Stage), y = tun_or, fill = color_category,group=Stock)
+) + #facet_wrap(~Stock) +
+  # Create bars that start from y = 1
+  geom_rect(aes(xmin = as.numeric(as.factor(Stage)) - 0.3,
+                xmax = as.numeric(as.factor(Stage)) + 0.3,
+                ymin = 1,
+                ymax = tun_or), position = position_dodge()) +
+  #  geom_col(width = 0.6, position = position_dodge()) +
+#  geom_errorbar(aes(ymin = tun_or - SE, ymax = tun_or + SE, color = color_category),
+ #               width = 0.2, size = 1, position = position_dodge(width = 0.6)) +
+  scale_fill_manual(values = color_map) +
+  scale_color_manual(values = color_map) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "grey") +
+  ylab("Odds Ratio from TUNEL assay") +
+  xlab("Stage of Oogenesis") +
+  theme_base() +
+  theme( legend.position = "none")
+
+odds_figure_TUN_stages
+ggsave("images/Figure4B.png",plot=odds_figure_TUN_stages, height=7)
 
 
 T42 <- subset(Ova, Ova$Stock=="42", na.rm=TRUE, select = c(Treatment, Round, Stock, oocyte_cor, Tunel_ova))

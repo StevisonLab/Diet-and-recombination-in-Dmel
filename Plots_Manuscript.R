@@ -268,9 +268,9 @@ plot_42
 plot_217
 
 ##Combined without the DNA degradation; Figure 4A
-final_results %>%
-  filter(Stock %in% c(42, 217)) %>%
-  ggplot(aes(x = log2_fold_change, 
+#final_results %>%
+#  filter(Stock %in% c(42, 217)) %>%
+Figure4A=ggplot(final_results,aes(x = log2_fold_change, 
              y = Trait, 
              fill = fill_color, 
              group = Stock)) +   # <-- ensures side-by-side by stock
@@ -279,18 +279,23 @@ final_results %>%
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
   scale_fill_identity() +  # <-- uses your existing colors
   labs(
-    title = "log2 Fold Change by Trait (Stock 42 vs Stock 217)",
-    x = "log2 Fold Change",
+    #title = "log2 Fold Change by Trait (Stock 42 vs Stock 217)",
+    x = expression("log"[2]*"FC"),
     y = "Trait",
     fill = "Treatment"
   ) +
   theme_base()  #+
-  theme(
-    plot.title = element_text(face = "bold"),
-    axis.title.x = element_text(face = "bold"),
-    axis.title.y = element_text(face = "bold"),
-    axis.text.y = element_text(face = "bold", size = 14),
-    axis.text.x = element_text(face = "bold", size = 14),
-    legend.title = element_text(face = "bold"),
-    axis.text = element_text(color = "black")
-  )
+
+#  theme(
+#    plot.title = element_text(face = "bold"),
+#    axis.title.x = element_text(face = "bold"),
+#    axis.title.y = element_text(face = "bold"),
+#    axis.text.y = element_text(face = "bold", size = 14),
+#    axis.text.x = element_text(face = "bold", size = 14),
+#    legend.title = element_text(face = "bold"),
+#    axis.text = element_text(color = "black")
+#  )
+
+Figure4A
+ggsave("images/Figure4A.png",plot=Figure4A, height=5)
+

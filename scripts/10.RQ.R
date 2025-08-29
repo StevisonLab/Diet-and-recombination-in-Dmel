@@ -116,6 +116,8 @@ res.aov <- lmer(RQ ~ (1|Vial) + Treatment * Sex * Stock, data = resp)
 as.data.frame(summary(res.aov)$coefficients)
 RQ1 <- Anova(res.aov)
 RQ1
+write.csv(RQ1,file="output/RQ_Anova_Table.csv",quote = F)
+
 RQpd <- emmeans(res.aov, ~ Sex * Treatment * Stock)
 summary(RQpd)
 cldRQ <-cld(RQpd, Letters = letters, alpha = 0.05)

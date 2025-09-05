@@ -1,6 +1,7 @@
 ##Physiology Figures
 library(ggplot2)
 library(readr)
+library(dplyr)
 library(tidyr)
 library(ggsignif)
 library(lme4)
@@ -8,7 +9,6 @@ library(car)
 library(multcompView)
 library(multcomp)
 library(doBy)
-library(dplyr)
 library(stringr)
 
 resp <- read_csv("rawdata/RQ_Spring2023.csv", na = "NA")
@@ -112,24 +112,27 @@ Ovas$TUNEL_Ovariole=as.factor(Ovas$TUNEL_Ovariole)
 Ovas$Tunel_ova = (Ovas$TUNEL_Cell/Ovas$Number_Oocyte)*100
 Ovas <- Ovas %>%
   filter(!is.na(Stock))
+Ovas$Treatment=as.factor(Ovas$Treatment)
+Ovas$Stock=as.factor(Ovas$Stock)
+Ovas$Age=as.factor(Ovas$Age)
+Ovas$Stage=as.factor(Ovas$Stage)
+Ova <- na.omit(Ovas)
 
-oocyte_summary <- Ovas  %>%
-  group_by(Stock, Treatment) %>%
-  summarise(mean_oocyte = mean(oocyte_cor, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = Treatment, values_from = mean_oocyte) %>%
-  mutate(fold_change = `0.5` / `2`,
-         log2_fold_change = log2(fold_change),
-         Trait = "oocyte_cor") %>%
+Total_summary = summary_by(oocyte_cor + Number_Oocyte + Ovariole + Ovary~Ovary_cor+Stock + Age + Treatment,data=Ova, FUN=c(sum,length,min,max,mean))
+Total_summary$oocyte_per_ovariole=Total_summary$Number_Oocyte.sum/Total_summary$Ovariole.max
+
+Total_summary$Treatment=as.factor(Total_summary$Treatment)
+Total_summary$Stock=as.factor(Total_summary$Stock)
+
+oocyte_summary <- Total_summary %>%
+  dplyr::group_by(Stock, Treatment) %>%
+  dplyr::summarise(mean_oocyte = mean(Number_Oocyte.sum, na.rm = TRUE), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = Treatment, values_from = mean_oocyte) %>%
+  dplyr::mutate(fold_change = `0.5` / `2`,
+                log2_fold_change = log2(fold_change),
+                Trait = "oocytes") %>%
   dplyr::select(Stock, Trait, fold_change, log2_fold_change)
 
-tunel_summary <- Ovas %>%
-  group_by(Stock, Treatment) %>%
-  summarise(mean_tunel = mean(TUNEL_Cell, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = Treatment, values_from = mean_tunel) %>%
-  mutate(fold_change = `0.5` / `2`,
-         log2_fold_change = log2(fold_change),
-         Trait = "TUNEL_cell") %>%
-  dplyr::select(Stock, Trait, fold_change, log2_fold_change)
 
 ##Testis
 
@@ -143,16 +146,16 @@ Data_Merge = (merge(meta,raw,by="Picture_Code",all=F))
 
 #make model parameters factors
 Data_Merge$Treatment=as.factor(Data_Merge$Treatment)
-Data_Merge$Age=as.factor(Data_Merge$Age)
+#Data_Merge$Age=as.factor(Data_Merge$Age)
 Data_Merge$Strain=as.factor(Data_Merge$Strain)
 
 
 testis_summary <- Data_Merge %>%
-  rename(Stock = Strain) %>%  # Rename Strain to Stock
-  group_by(Stock, Treatment) %>%
-  summarise(mean_length = mean(Length.mm, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = Treatment, values_from = mean_length) %>%
-  mutate(fold_change = `0.5x` / `2x`,
+  dplyr::rename(Stock = Strain) %>%  # Rename Strain to Stock
+  dplyr::group_by(Stock, Treatment) %>%
+  dplyr::summarise(mean_length = mean(Length.mm, na.rm = TRUE), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = Treatment, values_from = mean_length) %>%
+  dplyr::mutate(fold_change = `0.5x` / `2x`,
          log2_fold_change = log2(fold_change),
          Trait = "Length.mm") %>%
   dplyr::select(Stock, Trait, fold_change, log2_fold_change)
@@ -164,11 +167,11 @@ fecund_summary$PaternalStock=as.factor(fecund_summary$PaternalStock)
 fecund_summary$Treatment=as.factor(fecund_summary$Treatment)
 
 fec_summary <- fec %>%
-  rename(Stock = PaternalStock) %>%  # Rename to Stock
-  group_by(Stock, Treatment) %>%
-  summarise(mean_fecundity = mean(fecundity, na.rm = TRUE), .groups = "drop") %>%
+  dplyr::rename(Stock = PaternalStock) %>%  # Rename to Stock
+  dplyr::group_by(Stock, Treatment) %>%
+  dplyr::summarise(mean_fecundity = mean(fecundity, na.rm = TRUE), .groups = "drop") %>%
   tidyr::pivot_wider(names_from = Treatment, values_from = mean_fecundity) %>%
-  mutate(
+  dplyr::mutate(
     fold_change = `0.5x` / `2x`,
     log2_fold_change = log2(fold_change),
     Trait = "Fecundity"
@@ -176,10 +179,10 @@ fec_summary <- fec %>%
   dplyr::select(Stock, Trait, fold_change, log2_fold_change)
 
 fec_stock_avg <- fec %>%
-  rename(Stock = PaternalStock) %>%
-  filter(!is.na(Stock)) %>%
-  group_by(Stock) %>%
-  summarise(mean_fecundity = mean(fecundity, na.rm = TRUE), .groups = "drop")
+  dplyr::rename(Stock = PaternalStock) %>%
+  dplyr::filter(!is.na(Stock)) %>%
+  dplyr::group_by(Stock) %>%
+  dplyr::summarise(mean_fecundity = mean(fecundity, na.rm = TRUE), .groups = "drop")
 
 ##all data combined
 final_results <- bind_rows(
@@ -204,17 +207,16 @@ final_results <- final_results %>%
   )
 final_results$Trait=as.character(final_results$Trait)
 final_results <- final_results %>%
-  mutate(
+  dplyr::mutate(
     Trait = as.character(Trait),  # ensure it's character
     Trait = dplyr::recode(
       Trait,
       "Weight" = "Body mass",
-      #"TUNEL_Cell" = "DNA degradation",
-      "oocyte_cor" = "Number of oocytes",
+      "oocytes" = "Number of Oocytes",
       "Length.mm" = "Testes Length"
     )
   )
-final_results$Trait <- factor(final_results$Trait, levels = c("Body mass", "RQ", "Testes Length", "Number of oocytes", "Fecundity"))
+final_results$Trait <- factor(final_results$Trait, levels = c("Body mass", "RQ", "Testes Length", "Number of Oocytes", "Fecundity"))
 plot_42 <- final_results %>%
   filter(Stock == 42) %>%
   ggplot(aes(x = log2_fold_change, y = Trait, fill = fill_color)) +
@@ -275,7 +277,7 @@ Figure4A=ggplot(final_results,aes(x = log2_fold_change,
              fill = fill_color, 
              group = Stock)) +   # <-- ensures side-by-side by stock
   geom_col(width = 0.6, position = position_dodge(width = 0.7)) +
-  xlim(-1.07, 0.25) +
+  xlim(-0.75, 0.75) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
   scale_fill_identity() +  # <-- uses your existing colors
   labs(

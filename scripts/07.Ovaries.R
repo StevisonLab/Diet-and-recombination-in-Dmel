@@ -53,9 +53,9 @@ N1Key$Stock=N1Key$`Male Stock`
 N2Key$vial_num = N2Key$`Mom Vial`
 N2Key$Age = N2Key$Age.x
 N1 <- N1Key %>% 
-  select(1:10, 11,13,21,22)
+  dplyr::select(1:10, 11,13,21,22)
 N2 <- N2Key %>% 
-  select(1,2,4:10, 12,13, 16:18)
+  dplyr::select(1,2,4:10, 12,13, 16:18)
 
 ##Merge 2 rounds
 Ovas <- bind_rows(N1, N2)
@@ -284,6 +284,8 @@ Ova$Tunel_ova = (Ova$TUNEL_Cell/Ova$Number_Oocyte)*100
 
 #collapse stages into early and late to have fewer combinations with no data
 Ova$Stage_grouped <- ifelse(Ova$Stage %in% c("Germarium", "S1-7"), "Early","Late")
+#Ova$Stage_grouped <- ifelse(Ova$Stage %in% c("Germarium", "S1-7"), "Early",ifelse(Ova$Stage %in% c("S8-10","S11"),"Mid","Late"))
+#Ova$Stage_grouped <- ifelse(Ova$Stage %in% c("S12-14"),"Late","Early")
 
 # Get mean, median, etc. for each factor combination
 TUNEL_summary_stats <- Ova %>%
@@ -372,36 +374,59 @@ Ova_summary$Age_cor=ifelse(Ova_summary$Age=="0D","0",ifelse(Ova_summary$Age=="2D
 Ova_summary$Age_cor= as.numeric(Ova_summary$Age_cor)
 
 
-tun_summary <- summary_by(Tunel_ova ~ Stage_grouped + Treatment + Age + Stock, data=Ova, FUN=mean,na.rm)
+tun_summary <- summary_by(Tunel_ova ~ Stage_grouped + Treatment + Age + Stock, data=Ova, FUN=mean,na.rm=TRUE)
+tun_summary2 <- summary_by(Tunel_ova ~ Stage_grouped + Treatment + Age + Stock, data=Ova, FUN=sd,na.rm=TRUE)
+tun_summary$Tunel_ova.sd=tun_summary2$Tunel_ova.sd
 tun_summary$Age_cor=ifelse(tun_summary$Age=="0D","0",ifelse(tun_summary$Age=="2D",2,5))
 tun_summary$Age_cor= as.numeric(tun_summary$Age_cor)
 #tun_summary$Stage_cor=ifelse(tun_summary$Stage=="Germarium","1",ifelse(tun_summary$Stage=="S1-7","2",ifelse(tun_summary$Stage=="S8-10","3",ifelse(tun_summary$Stage=="S11","4","5"))))
 tun_summary$Stage_cor=ifelse(tun_summary$Stage_grouped=="Early","1","2")
 tun_summary$Stage_cor= as.numeric(tun_summary$Stage_cor)
 
+
 #Plot mean TUNEL cells per day per treatment per stage
 tun_gxe_map <- ggplot(tun_summary, aes(x=Stage_cor, y=Tunel_ova.mean,col=Treatment)) +
   facet_grid(Stock~Age_cor) + ylab("Percent Oocytes TUNEL Positive")+
   scale_x_continuous(limits=c(1,2),breaks=c(1,2),labels=c("Early", "Late")) + 
-  theme(plot.title = element_blank()) + xlab("Stage of Oogenesis") + 
-  theme_base() + 
-  geom_line(linewidth = 3, lineend = "round")+ theme(legend.title=element_blank())
+  theme(plot.title = element_blank()) + xlab("Stage of Oogenesis") + geom_point()+
+  theme_base() + geom_errorbar(aes(ymin=Tunel_ova.mean-Tunel_ova.sd,ymax=Tunel_ova.mean+Tunel_ova.sd))+
+  geom_line(linewidth = 2, lineend = "round")+ theme(legend.title=element_blank())
 tun_gxe_map
-
+ggsave(tun_gxe_map,file="images/GxE_TUNEL.png")
 
 
 Order_Sta=c("Germarium", "S1-7", "S8-10", "S11", "S12-14")
 Order_Sta=c("Early", "Late")
 
 ##TUNEL Supplemental Figure 9
-odds_figure_TUN=ggplot(aes(y=odds.ratio,x=factor(Stage_grouped),group=contrast,col=contrast,shape=contrast),data=pheno_contr_TUN)+
+odds_figure_TUN_DGRP_42=ggplot(aes(y=odds.ratio,x=factor(Stage_grouped),group=contrast,col=contrast,shape=contrast),data=pheno_contr_TUN)+scale_colour_manual(values=c("#1b9e77","#d95f02","#7570b3"))+
   geom_point(size=3)+ylab("TUNEL Odds Ratio")+theme_base()+geom_hline(yintercept = 1,linetype="dashed",color="grey")+theme(axis.text.x = element_text(angle = 25))+
   #scale_x_discrete(name="Days post-mating",labels=c("1-2","3-4","5-6","7-8"))+
   geom_line() + geom_errorbar(aes(ymin=odds.ratio-SE,ymax=odds.ratio+SE))+
-  facet_grid(Stock~Age)+xlab("Stage of Oogenesis")
-odds_figure_TUN
-ggsave("images/FigureS9.png",plot=odds_figure_TUN, height=7,width=14)
+  annotate(geom="text", x=1, y=6.4, label=pheno_contr_TUN$ooc_sig[1],color="#1b9e77",size=10)+
+  annotate(geom="text", x=2, y=6.4, label=pheno_contr_TUN$ooc_sig[7],color="#1b9e77",size=10)+
+  annotate(geom="text", x=1, y=6.4, label=pheno_contr_TUN$ooc_sig[2],color="#d95f02",size=10)+
+  annotate(geom="text", x=2, y=6.4, label=pheno_contr_TUN$ooc_sig[8],color="#d95f02",size=10)+
+  annotate(geom="text", x=1, y=6.4, label=pheno_contr_TUN$ooc_sig[3],color="#7570b3",size=10)+
+  annotate(geom="text", x=2, y=6.4, label=pheno_contr_TUN$ooc_sig[9],color="#7570b3",size=10)+
+    facet_wrap(~Stock)+xlab("Stage of Oogenesis")+ylim(0,7)
+odds_figure_TUN_DGRP_42
 
+odds_figure_TUN_DGRP_217=ggplot(aes(y=odds.ratio,x=factor(Stage_grouped),group=contrast,col=contrast,shape=contrast),data=pheno_contr_TUN)+scale_colour_manual(values=c("#1b9e77","#d95f02","#7570b3"))+
+  geom_point(size=3)+ylab("TUNEL Odds Ratio")+theme_base()+geom_hline(yintercept = 1,linetype="dashed",color="grey")+theme(axis.text.x = element_text(angle = 25))+
+  #scale_x_discrete(name="Days post-mating",labels=c("1-2","3-4","5-6","7-8"))+
+  geom_line() + geom_errorbar(aes(ymin=odds.ratio-SE,ymax=odds.ratio+SE))+
+  annotate(geom="text", x=1, y=6.4, label=pheno_contr_TUN$ooc_sig[4],color="#1b9e77",size=10)+
+  annotate(geom="text", x=2, y=6.4, label=pheno_contr_TUN$ooc_sig[10],color="#1b9e77",size=10)+
+  annotate(geom="text", x=1, y=6.75, label=pheno_contr_TUN$ooc_sig[5],color="#d95f02",size=10)+
+  annotate(geom="text", x=2, y=6.4, label=pheno_contr_TUN$ooc_sig[11],color="#d95f02",size=10)+
+  annotate(geom="text", x=1, y=6.4, label=pheno_contr_TUN$ooc_sig[6],color="#7570b3",size=10)+
+  annotate(geom="text", x=2, y=6.4, label=pheno_contr_TUN$ooc_sig[12],color="#7570b3",size=10)+
+  facet_wrap(~Stock)+xlab("Stage of Oogenesis")+ylim(0,7)
+odds_figure_TUN_DGRP_217
+
+ggsave("images/FigureS9A.png",plot=odds_figure_TUN_DGRP_42, height=7,width=14)
+ggsave("images/FigureS9B.png",plot=odds_figure_TUN_DGRP_217, height=7,width=14)
 
 
 #Figure 4B without Stages

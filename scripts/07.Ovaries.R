@@ -289,7 +289,7 @@ Ova$Stage_grouped <- ifelse(Ova$Stage %in% c("Germarium", "S1-7"), "Early","Late
 
 # Get mean, median, etc. for each factor combination
 TUNEL_summary_stats <- Ova %>%
-  dplyr::group_by(Treatment, Stock,Stage_grouped) %>%
+  dplyr::group_by(Treatment, Stock, Stage_grouped) %>%
   dplyr::summarise(
     mean_tunel = mean(Tunel_ova, na.rm = TRUE),
     num_oocyte = sum(Number_Oocyte, na.rm = TRUE),
@@ -393,6 +393,21 @@ tun_gxe_map <- ggplot(tun_summary, aes(x=Stage_cor, y=Tunel_ova.mean,col=Treatme
   geom_line(linewidth = 2, lineend = "round")+ theme(legend.title=element_blank())
 tun_gxe_map
 ggsave(tun_gxe_map,file="images/GxE_TUNEL.png")
+
+#Different GxE plot; Supplementary Figure 10
+tun_summary <- summary_by(Tunel_ova ~  Treatment  + Stock, data=Ova, FUN=mean,na.rm=TRUE)
+tun_summary2 <- summary_by(Tunel_ova ~ Treatment + Stock, data=Ova, FUN=sd,na.rm=TRUE)
+tun_summary$Tunel_ova.sd=tun_summary2$Tunel_ova.sd
+
+tun_gxe_diet <- ggplot(tun_summary, aes(x=as.numeric(Treatment), y=Tunel_ova.mean,col=Stock)) +
+  ylab("Percent Oocytes TUNEL Positive")+
+  scale_x_continuous(limits=c(0.9,3.1),breaks=c(1,2,3),labels=c("0.5x","1x","2x")) + 
+  scale_color_manual(values = c("#fd8d3c","#6baed6"))+
+  theme(plot.title = element_blank()) + xlab("Caloric Density") + geom_point(na.rm=TRUE)+
+  theme_base() + geom_errorbar(aes(ymin=Tunel_ova.mean-Tunel_ova.sd,ymax=Tunel_ova.mean+Tunel_ova.sd),linewidth=2,width=0.2)+
+  geom_line(linewidth = 2, lineend = "round")+ theme(legend.title=element_blank())
+tun_gxe_diet
+ggsave(tun_gxe_diet,file="images/Figure_S10.png")
 
 
 Order_Sta=c("Germarium", "S1-7", "S8-10", "S11", "S12-14")
@@ -521,7 +536,8 @@ TP217
 
 
 #difference between 217 and 42 for 0.5x for paper Discussion:
-fit_contrast_TUN <- emmeans(TUNELlm, specs = pairwise ~ Stock, by=c("Treatment","Stage_grouped"))
+fit_contrast_TUN <- emmeans(TUNELlm, specs = pairwise ~ Stock, by=c("Treatment"))
 fit_contr_TUN <- contrast(fit_contrast_TUN, method="pairwise", type = "response")
 pheno_contr_TUN <- as.data.frame(summary(fit_contr_TUN))
 pheno_contr_TUN$ooc_sig=ifelse(pheno_contr_TUN$p.value<0.001,"***",ifelse(pheno_contr_TUN$p.value<0.01,"**",ifelse(pheno_contr_TUN$p.value<0.05,"*","")))
+
